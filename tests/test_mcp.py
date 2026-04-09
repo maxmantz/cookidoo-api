@@ -21,6 +21,7 @@ from cookidoo_api.mcp.tools import (
     handle_get_account_summary,
     handle_get_shopping_list,
     handle_list_custom_collections,
+    handle_search_recipes,
 )
 from cookidoo_api.types import (
     CookidooAdditionalItem,
@@ -29,6 +30,8 @@ from cookidoo_api.types import (
     CookidooConfig,
     CookidooIngredientItem,
     CookidooLocalizationConfig,
+    CookidooSearchRecipeHit,
+    CookidooSearchResult,
     CookidooShoppingRecipe,
     CookidooSubscription,
     CookidooUserInfo,
@@ -366,3 +369,51 @@ class TestCookidooMCPToolHandlers:
 
         assert result.structured_content["recipe_ids"] == ["r1", "r2"]
         assert result.structured_content["calendar_day"]["id"] == "2026-04-09"
+
+    async def test_handle_search_recipes_returns_structured_results(self) -> None:
+        """Search should return structured results with hits and pagination."""
+        client = SimpleNamespace(
+            search_recipes=AsyncMock(
+                return_value=CookidooSearchResult(
+                    total_hits=150,
+                    page=0,
+                    total_pages=8,
+                    hits=[
+                        CookidooSearchRecipeHit(
+                            id="r130616",
+                            title="Tomaten-Knoblauch-Pasta",
+                            rating=4.1,
+                            number_of_ratings=5258,
+                            total_time=1800,
+                            image="https://assets.tmecosys.com/image.jpg",
+                        ),
+                    ],
+                )
+            )
+        )
+        session_manager = cast(
+            CookidooSessionManager,
+            FakeToolSessionManager(client),
+        )
+
+        result = await handle_search_recipes(
+            session_manager=session_manager,
+            query="Pasta",
+            page=0,
+            page_size=20,
+            sort=None,
+            category=None,
+            difficulty=None,
+            max_total_time_minutes=None,
+            max_prep_time_minutes=None,
+            tm_version=None,
+            accessories=None,
+            portions=None,
+            min_rating=None,
+        )
+
+        assert result.structured_content["total_hits"] == 150
+        assert result.structured_content["page"] == 0
+        assert result.structured_content["total_pages"] == 8
+        assert len(result.structured_content["hits"]) == 1
+        assert result.structured_content["hits"][0]["id"] == "r130616"

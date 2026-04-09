@@ -11,7 +11,11 @@ from fastmcp.tools import ToolResult
 
 from cookidoo_api.cookidoo import Cookidoo
 from cookidoo_api.helpers import get_localization_options
-from cookidoo_api.types import CookidooCollection
+from cookidoo_api.types import (
+    CookidooCollection,
+    CookidooSearchFilters,
+    CookidooSearchSort,
+)
 
 from .errors import to_tool_error
 from .serialization import make_tool_result
@@ -67,6 +71,40 @@ def register_tools(mcp: FastMCP, session_manager: CookidooSessionManager) -> Non
             handle_get_recipe_details(
                 session_manager=session_manager,
                 recipe_id=recipe_id,
+            )
+        )
+
+    @mcp.tool(annotations=API_READONLY_ANNOTATIONS)
+    async def cookidoo_search_recipes(
+        query: str = "",
+        page: int = 0,
+        page_size: int = 20,
+        sort: str | None = None,
+        category: str | None = None,
+        difficulty: str | None = None,
+        max_total_time_minutes: int | None = None,
+        max_prep_time_minutes: int | None = None,
+        tm_version: str | None = None,
+        accessories: list[str] | None = None,
+        portions: int | None = None,
+        min_rating: int | None = None,
+    ) -> ToolResult:
+        """Search Cookidoo recipes by keyword with optional filters. Use this to discover recipes before adding them to shopping lists, collections, or calendars. Sort options: relevance, newest, name_asc, rating, total_time, prep_time. Categories use IDs like VrkNavCategory-RPF-003. Difficulty: easy, medium, advanced. TM versions: TM7, TM6, TM5, TM31."""
+        return await _run_tool(
+            handle_search_recipes(
+                session_manager=session_manager,
+                query=query,
+                page=page,
+                page_size=page_size,
+                sort=sort,
+                category=category,
+                difficulty=difficulty,
+                max_total_time_minutes=max_total_time_minutes,
+                max_prep_time_minutes=max_prep_time_minutes,
+                tm_version=tm_version,
+                accessories=accessories,
+                portions=portions,
+                min_rating=min_rating,
             )
         )
 
@@ -237,6 +275,61 @@ async def handle_get_recipe_details(
     return make_tool_result(
         summary=f"Loaded Cookidoo recipe details for {recipe.name} ({recipe.id}).",
         payload={"recipe": recipe},
+    )
+
+
+async def handle_search_recipes(
+    session_manager: CookidooSessionManager,
+    query: str,
+    page: int,
+    page_size: int,
+    sort: str | None,
+    category: str | None,
+    difficulty: str | None,
+    max_total_time_minutes: int | None,
+    max_prep_time_minutes: int | None,
+    tm_version: str | None,
+    accessories: list[str] | None,
+    portions: int | None,
+    min_rating: int | None,
+) -> ToolResult:
+    """Search for recipes via Algolia."""
+    client = await session_manager.get_client()
+
+    search_sort = CookidooSearchSort(sort) if sort else CookidooSearchSort.RELEVANCE
+
+    filters = CookidooSearchFilters(
+        category=category,
+        difficulty=difficulty,
+        max_total_time=max_total_time_minutes * 60 if max_total_time_minutes else None,
+        max_prep_time=max_prep_time_minutes * 60 if max_prep_time_minutes else None,
+        tm_version=tm_version,
+        accessories=accessories,
+        portions=portions,
+        min_rating=min_rating,
+    )
+
+    result = await client.search_recipes(
+        query=query,
+        page=page,
+        page_size=page_size,
+        sort=search_sort,
+        filters=filters,
+    )
+
+    return make_tool_result(
+        summary=(
+            f"Found {result.total_hits} recipe(s) matching '{query}'. "
+            f"Showing page {result.page + 1}/{result.total_pages} "
+            f"({len(result.hits)} hit(s))."
+        ),
+        payload={
+            "query": query,
+            "total_hits": result.total_hits,
+            "page": result.page,
+            "total_pages": result.total_pages,
+            "hits": result.hits,
+        },
     )
 
 
