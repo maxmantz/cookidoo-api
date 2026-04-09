@@ -41,6 +41,76 @@ PASSWORD=password
 
 Run the [example script](https://github.com/miaucl/cookidoo-api/blob/master/example.py) and have a look at the inline comments for more explanation.
 
+## MCP Server
+
+This package also ships a local MCP server that runs over `stdio`.
+
+### Environment Variables
+
+Set the following variables before starting the server:
+
+```text
+COOKIDOO_EMAIL=your@mail.com
+COOKIDOO_PASSWORD=password
+COOKIDOO_COUNTRY_CODE=ch
+COOKIDOO_LANGUAGE=de-CH
+```
+
+Notes:
+
+- `COOKIDOO_COUNTRY_CODE` and `COOKIDOO_LANGUAGE` are optional. If omitted, the server falls back to the library default localization (`ch` / `de-CH`).
+- Legacy `EMAIL` and `PASSWORD` are also accepted for compatibility with the existing example script.
+- If you are unsure which localization pair to use, start the server and call `cookidoo_list_localizations`.
+
+### Start The Server
+
+After installing the package, run:
+
+```bash
+cookidoo-mcp
+```
+
+FastMCP uses `stdio` by default, so this command is ready to plug into MCP-compatible clients.
+
+Example client configuration:
+
+```json
+{
+  "mcpServers": {
+    "cookidoo": {
+      "command": "cookidoo-mcp",
+      "env": {
+        "COOKIDOO_EMAIL": "your@mail.com",
+        "COOKIDOO_PASSWORD": "password",
+        "COOKIDOO_COUNTRY_CODE": "ch",
+        "COOKIDOO_LANGUAGE": "de-CH"
+      }
+    }
+  }
+}
+```
+
+### Initial Tool Scope
+
+The first MCP release includes these tools:
+
+- `cookidoo_list_localizations`
+- `cookidoo_get_account_summary`
+- `cookidoo_get_recipe_details`
+- `cookidoo_get_shopping_list`
+- `cookidoo_list_custom_collections`
+- `cookidoo_get_calendar_week`
+- `cookidoo_add_recipe_ingredients_to_shopping_list`
+- `cookidoo_remove_recipe_ingredients_from_shopping_list`
+- `cookidoo_clear_shopping_list`
+- `cookidoo_create_custom_collection`
+- `cookidoo_add_recipes_to_custom_collection`
+- `cookidoo_remove_recipe_from_custom_collection`
+- `cookidoo_add_recipes_to_calendar`
+- `cookidoo_remove_recipe_from_calendar`
+
+Premium-only tools and managed-collection tools are intentionally out of scope for the initial MCP server.
+
 ## Exceptions
 
 In case something goes wrong during a request, several [exceptions](https://github.com/miaucl/cookidoo/blob/master/cookidoo_api/exceptions.py) can be thrown, all inheriting from `CookidooException`.
