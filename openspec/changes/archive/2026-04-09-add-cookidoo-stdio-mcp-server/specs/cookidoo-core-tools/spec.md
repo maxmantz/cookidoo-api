@@ -1,8 +1,4 @@
-# Purpose
-
-Defines the Cookidoo MCP tools for localization discovery, account and recipe access, shopping lists, custom collections, and calendar planning.
-
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Localization discovery tool
 The system SHALL expose a read-only `cookidoo_list_localizations` tool that returns valid Cookidoo localization options and supports filtering by country code and language.
